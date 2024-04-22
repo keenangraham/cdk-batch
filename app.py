@@ -13,6 +13,9 @@ from aws_cdk.aws_ecs import ContainerImage
 
 from aws_cdk.aws_ecr_assets import Platform
 
+from aws_cdk.aws_iam import Role
+from aws_cdk.aws_iam import ServicePrincipal
+
 from aws_cdk.aws_batch import FargateComputeEnvironment
 from aws_cdk.aws_batch import JobQueue
 from aws_cdk.aws_batch import EcsFargateContainerDefinition
@@ -59,7 +62,7 @@ class BatchWorkflowStack(Stack):
                 subnet_type=SubnetType.PUBLIC,
             ),
             compute_environment_name='TestCDKComputeEnvironmentName',
-            maxv_cpus=2,
+            maxv_cpus=2
         )
 
         job_queue = JobQueue(
@@ -73,9 +76,18 @@ class BatchWorkflowStack(Stack):
             1
         )
 
+        job_role = Role(
+            self,
+            'TestFargateBatchRole',
+            assumed_by=ServicePrincipal(
+                'ecs-tasks.amazonaws.com'
+            )
+        )
+
         container = EcsFargateContainerDefinition(
             self,
             'TestFargateBatchContainer',
+            assign_public_ip=True,
             image=ContainerImage.from_asset(
                 './docker',
                 platform=Platform.LINUX_AMD64,
