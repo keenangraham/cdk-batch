@@ -11,6 +11,8 @@ from aws_cdk.aws_ecs import AwsLogDriverMode
 from aws_cdk.aws_ecs import LogDriver
 from aws_cdk.aws_ecs import ContainerImage
 
+from aws_cdk.aws_secretsmanager import Secret as SMSecret
+
 from aws_cdk.aws_ecr_assets import Platform
 
 from aws_cdk.aws_iam import Role
@@ -20,6 +22,7 @@ from aws_cdk.aws_batch import FargateComputeEnvironment
 from aws_cdk.aws_batch import JobQueue
 from aws_cdk.aws_batch import EcsFargateContainerDefinition
 from aws_cdk.aws_batch import EcsJobDefinition
+from aws_cdk.aws_batch import Secret
 
 from aws_cdk.aws_logs import RetentionDays
 
@@ -84,6 +87,11 @@ class BatchWorkflowStack(Stack):
             )
         )
 
+        sa_secret = SMSecret.from_secret_complete_arn(
+            'arn:aws:secretsmanager:us-west-2:618537831167:secret:test/secret/json/blob-6axDxV',
+            'json_str',
+        )
+
         container = EcsFargateContainerDefinition(
             self,
             'TestFargateBatchContainer',
@@ -96,6 +104,11 @@ class BatchWorkflowStack(Stack):
             cpu=1,
             environment={
                 'SOME_ENV': 'abc',
+            },
+            secrets={
+                'SA_SECRET': Secret.from_secrets_manager(
+                    sa_secret,
+                )
             },
             logging=LogDriver.aws_logs(
                 stream_prefix='testbatchjob',
