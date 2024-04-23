@@ -154,6 +154,7 @@ class BatchWorkflowStack(Stack):
 
         rule.add_target(target)
 
+
 BatchWorkflowStack(
     app,
     'BatchWorkflowStack',
