@@ -88,8 +88,9 @@ class BatchWorkflowStack(Stack):
         )
 
         sa_secret = SMSecret.from_secret_complete_arn(
+            self,
+            'SASecret',
             'arn:aws:secretsmanager:us-west-2:618537831167:secret:test/secret/json/blob-6axDxV',
-            'json_str',
         )
 
         container = EcsFargateContainerDefinition(
@@ -107,7 +108,8 @@ class BatchWorkflowStack(Stack):
             },
             secrets={
                 'SA_SECRET': Secret.from_secrets_manager(
-                    sa_secret,
+                    secret=sa_secret,
+                    field='json_str',
                 )
             },
             logging=LogDriver.aws_logs(
