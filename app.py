@@ -24,6 +24,11 @@ from aws_cdk.aws_batch import EcsFargateContainerDefinition
 from aws_cdk.aws_batch import EcsJobDefinition
 from aws_cdk.aws_batch import Secret
 
+from aws_cdk.aws_events import Rule
+from aws_cdk.aws_events import Schedule
+
+from aws_cdk.aws_events_targets import BatchJob
+
 from aws_cdk.aws_logs import RetentionDays
 
 from aws_cdk.aws_ec2 import Vpc
@@ -125,6 +130,29 @@ class BatchWorkflowStack(Stack):
             container=container,
         )
 
+
+        rule = Rule(
+            self,
+            'TestBatchJobRule',
+            schedule=Schedule.cron(
+                minute='0',
+                hour='9',
+                day='*',
+                month='*',
+                year='*'
+            ),
+        )
+
+        target = BatchJob(
+            job_queue_arn=job_queue.job_queue_arn,
+            job_queue_scope=job_queue,
+            job_definition_arn=job_definition.job_definition_arn,
+            job_definition_scope=job_definition,
+            job_name='TestScheduledBatchJob',
+            retry_attempts=0,
+        )
+
+        rule.add_target(target)
 
 BatchWorkflowStack(
     app,
