@@ -26,8 +26,16 @@ from aws_cdk.aws_batch import Secret
 
 from aws_cdk.aws_events import Rule
 from aws_cdk.aws_events import Schedule
+from aws_cdk.aws_events import EventPattern
+from aws_cdk.aws_events import EventField
+from aws_cdk.aws_events import Connection
+from aws_cdk.aws_events import ApiDestination
+from aws_cdk.aws_events import RuleTargetInput
 
 from aws_cdk.aws_events_targets import BatchJob
+from aws_cdk.aws_events_targets import ApiDestination as TargetApiDestination
+
+from aws_cdk.aws_ssm import StringParameter
 
 from aws_cdk.aws_logs import RetentionDays
 
@@ -153,6 +161,76 @@ class BatchWorkflowStack(Stack):
         )
 
         rule.add_target(target)
+
+        connection = Connection.from_event_bus_arn(
+            self,
+            'Connection',
+            connection_arn='arn:aws:events:us-west-2:618537831167:connection/test-connection/91ea900a-3859-4515-8549-1aea492c9ab8',
+            connection_secret_arn='arn:aws:secretsmanager:us-west-2:618537831167:secret:events!connection/test-connection/8e36f4d9-82f7-4eca-a48e-9d60e43a8994-GY4yUr',
+        )
+
+        endpoint = StringParameter.from_string_parameter_name(
+            self,
+            'SlackWebhookUrl',
+            string_parameter_name='DEMO_EVENTS_SLACK_WEBHOOK_URL',
+        )
+
+        api_destination = ApiDestination(
+            self,
+            'BatchJobNotificationSlackChannel',
+            connection=connection,
+            endpoint=endpoint.string_value,
+        )
+
+        succeeded_transformed_event = RuleTargetInput.from_object(
+            {
+                'text': f':white_check_mark: *AnvilFileTransferSucceeded* | {job_queue.job_queue_arn}'
+            }
+        )
+
+        failed_transformed_event = RuleTargetInput.from_object(
+            {
+                'text': f':x: *AnvilFileTransferFailed* | {job_queue.job_queue_arn}'
+            }
+        )
+
+        succeeded_outcome_notification_rule = Rule(
+            self,
+            'NotifySlackBatchJobSucceeded',
+            event_pattern=EventPattern(
+                source=['aws.batch'],
+                detail_type=['Batch Job State Change'],
+                detail={
+                    'status': ['SUCCEEDED'],
+                    'jobQueue': [f'{job_queue.job_queue_arn}'],
+                }
+            ),
+            targets=[
+                TargetApiDestination(
+                    api_destination=api_destination,
+                    event=succeeded_transformed_event,
+                )
+            ]
+        )
+
+        failed_outcome_notification_rule = Rule(
+            self,
+            'NotifySlackBatchJobFailed',
+            event_pattern=EventPattern(
+                source=['aws.batch'],
+                detail_type=['Batch Job State Change'],
+                detail={
+                    'status': ['FAILED'],
+                    'jobQueue': [f'{job_queue.job_queue_arn}'],
+                }
+            ),
+            targets=[
+                TargetApiDestination(
+                    api_destination=api_destination,
+                    event=failed_transformed_event,
+                )
+            ]
+        )
 
 
 BatchWorkflowStack(
