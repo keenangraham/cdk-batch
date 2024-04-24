@@ -122,7 +122,15 @@ class BatchWorkflowStack(Stack):
             secrets={
                 'SA_SECRET': Secret.from_secrets_manager(
                     secret=sa_secret,
-                    field='json_str',
+                    field='google_sa_base64',
+                ),
+                'PORTAL_KEY': Secret.from_secrets_manager(
+                    secret=sa_secret,
+                    field='portal_key',
+                ),
+                'PORTAL_SECRET_KEY': Secret.from_secrets_manager(
+                    secret=sa_secret,
+                    field='portal_secret_key',
                 )
             },
             logging=LogDriver.aws_logs(
